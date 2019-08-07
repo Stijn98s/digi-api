@@ -1,0 +1,33 @@
+version: '3.2'
+services:
+  mongo:
+    image: mongo
+    environment:
+      MONGO_INITDB_DATABASE: nest
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - /home/geordi/${CI_COMMIT_REF_NAME-development}:/data/db
+  mongo-express:
+    image: mongo-express
+
+    depends_on:
+      - mongo
+    ports:
+      - ${MONGO_EXPRESS_PORT-4001}:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+
+  web:
+    image: project.stijn98s.nl:5555/project/digi-api:${CI_COMMIT_REF_NAME-development}
+    deploy:
+      replicas: 1
+    environment:
+      NODE_ENV: development
+    depends_on:
+      - mongo
+    ports:
+      - ${WEB_PORT-4000}:3000
+volumes:
+  development: {}

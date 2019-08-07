@@ -1,0 +1,32 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../.",
+  "testRegex": ".spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "setupFiles": ["./test/test-scripts/setup.ts"],
+  "globalSetup": "./test/test-scripts/jest-setup.ts",
+  "globalTeardown": "./test/test-scripts/jest-teardown.ts",
+  "testEnvironment": "./test/test-scripts/mongo-environment.ts",
+  "coverageDirectory": "./coverage",
+  "coverageThreshold": {
+    "global": {
+      "branches": 70,
+      "functions": 65,
+      "lines": 80
+    }
+  },
+  "collectCoverageFrom": [
+    "!**/node_modules/*",
+    "!**/vendor/**",
+    "!**/test/**",
+    "!**/*spec.ts",
+    "src/**/*.ts",
+    "!**/node_modules/**",
+    "!**/dist/**",
+    "!main.ts"
+  ],
+  "modulePathIgnorePatterns": ["node_modules"],
+  "coveragePathIgnorePatterns": ["node_modules", "dist", "src/decorators", "src/exception-filters", "src/guards", "src/main.ts"]
+}

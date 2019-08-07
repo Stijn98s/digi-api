@@ -1,0 +1,94 @@
+image: docker:latest
+services:
+- docker:dind
+
+stages:
+- build
+- test
+- release
+- deploy
+
+cache:
+  paths:
+    - node_modules/
+
+variables:
+  TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-test
+  RELEASE_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  GIT_SUBMODULE_STRATEGY: recursive
+
+build:
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY;
+  stage: build
+  only:
+    - "master"
+    - "development"
+  script:
+    - docker build --pull -t $RELEASE_IMAGE .
+    - docker push $RELEASE_IMAGE
+
+
+
+test_e2e:
+  stage: test
+  image: node:11.9
+  services:
+  script:
+    - npm i
+    - npm run test:ops:cover
+  only:
+    - merge_requests
+
+
+test_build:
+  stage: test
+  image: node:11.9-alpine
+  services:
+  script:
+    - npm i
+    - npm run build
+  only:
+    - merge_requests
+
+deploy_development:
+  stage: deploy
+  image: docker:latest
+  variables:
+    WEB_PORT: 4000
+    MONGO_EXPRESS_PORT: 4001
+  only:
+    - "development"
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY;
+    - apk add openssh
+    - mkdir -p ~/.ssh
+    - echo "$DEPLOY_SERVER_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - echo -e "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+    - chmod 700 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOYMENT_SERVER_IP >> ~/.ssh/known_hosts
+  script:
+    - docker -H ssh://root@$DEPLOYMENT_SERVER_IP stack deploy --with-registry-auth -c 'ci-conf/docker-compose.development.yml' $CI_COMMIT_REF_NAME
+
+deploy_master:
+  stage: deploy
+  image: docker:latest
+  variables:
+    WEB_PORT: 3000
+    MONGO_EXPRESS_PORT: 3001
+  only:
+    - "master"
+  before_script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY;
+    - apk add openssh
+    - mkdir -p ~/.ssh
+    - echo "$DEPLOY_SERVER_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - echo -e "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
+    - chmod 700 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOYMENT_SERVER_IP >> ~/.ssh/known_hosts
+  script:
+    - docker -H ssh://root@$DEPLOYMENT_SERVER_IP stack deploy --with-registry-auth -c 'ci-conf/docker-compose.development.yml' $CI_COMMIT_REF_NAME

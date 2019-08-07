@@ -1,0 +1,3 @@
+[submodule "ci-conf"]
+	path = ci-conf
+url=../../grtrapma/ci-conf.git
